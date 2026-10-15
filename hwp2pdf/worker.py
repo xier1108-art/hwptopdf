@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import traceback
 from dataclasses import dataclass, field
@@ -14,6 +15,8 @@ from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
 
 from .converter import HwpConverter
 from .privacy import strip_document_metadata, strip_image_exif
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -73,13 +76,14 @@ class ConversionTask(QRunnable):
                 except OSError:
                     pass
 
+            log.info("변환 성공: %s -> %s", self.src_path, pdf_path)
             self.signals.finished.emit(
                 TaskResult(self.index, self.src_path, pdf_path, True, "완료")
             )
         except Exception as e:  # noqa: BLE001
-            msg = f"{e}\n{traceback.format_exc(limit=2)}"
+            log.error("변환 실패: %s\n%s", self.src_path, traceback.format_exc())
             self.signals.finished.emit(
-                TaskResult(self.index, self.src_path, None, False, str(e) or msg)
+                TaskResult(self.index, self.src_path, None, False, str(e) or repr(e))
             )
         finally:
             converter.close()

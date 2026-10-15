@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from .log import LOG_PATH
 from .privacy import merge_pdfs
 from .worker import ConversionTask, ConvertOptions, TaskResult
 
@@ -37,17 +38,17 @@ STATUS_FAIL = "실패"
 
 class FileTable(QTableWidget):
     def __init__(self, parent=None):
-        super().__init__(0, 2, parent)
-        self.setHorizontalHeaderLabels(["파일", "상태"])
-        self.horizontalHeader().setStretchLastSection(False)
-        self.horizontalHeader().resizeSection(1, 100)
-        self.horizontalHeader().setSectionResizeMode(
-            0, self.horizontalHeader().ResizeMode.Stretch
-        )
+        super().__init__(0, 3, parent)
+        self.setHorizontalHeaderLabels(["파일", "상태", "메시지"])
+        header = self.horizontalHeader()
+        header.setSectionResizeMode(0, header.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, header.ResizeMode.Fixed)
+        header.setSectionResizeMode(2, header.ResizeMode.Interactive)
+        header.resizeSection(1, 70)
+        header.resizeSection(2, 220)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.setAcceptDrops(True)
-        self.setColumnWidth(0, 480)
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -260,6 +261,7 @@ class MainWindow(QMainWindow):
 
         for row in range(self.table.rowCount()):
             self.table.setItem(row, 1, QTableWidgetItem(STATUS_WAIT))
+            self.table.setItem(row, 2, QTableWidgetItem(""))
 
         for i, path in enumerate(self.files):
             task = ConversionTask(i, path, options)
@@ -272,12 +274,13 @@ class MainWindow(QMainWindow):
 
     def _on_finished(self, result: TaskResult) -> None:
         status = STATUS_DONE if result.success else STATUS_FAIL
-        item = QTableWidgetItem(status)
-        if not result.success:
-            item.setToolTip(result.message)
-        self.table.setItem(result.index, 1, item)
+        self.table.setItem(result.index, 1, QTableWidgetItem(status))
         if result.success:
             self.produced_pdfs[result.index] = result.pdf_path
+        else:
+            msg_item = QTableWidgetItem(result.message.splitlines()[0] if result.message else "")
+            msg_item.setToolTip(result.message)
+            self.table.setItem(result.index, 2, msg_item)
 
         self.pending -= 1
         done_count = len(self.files) - self.pending
@@ -290,7 +293,10 @@ class MainWindow(QMainWindow):
         self.start_btn.setEnabled(True)
         ok_pdfs = [p for p in self.produced_pdfs if p]
         fail_count = len(self.files) - len(ok_pdfs)
-        self.status_label.setText(f"완료: {len(ok_pdfs)}개 성공, {fail_count}개 실패")
+        text = f"완료: {len(ok_pdfs)}개 성공, {fail_count}개 실패"
+        if fail_count:
+            text += f"  (실패 원인은 '메시지' 칸 또는 로그 파일 참고: {LOG_PATH})"
+        self.status_label.setText(text)
 
         out_dir = self.out_dir_edit.text().strip() or (
             os.path.dirname(self.files[0]) if self.files else "."

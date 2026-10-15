@@ -53,10 +53,23 @@ python setup\install_libreoffice_extension.py
 
 ## 문제 해결
 
+- 변환에 실패하면 표의 **'메시지' 칸**에 원인이 표시되고, 상세 내용은 로그 파일에 남습니다:
+  `%LOCALAPPDATA%\hwptopdf\logs\hwptopdf.log`
+
 - "LibreOffice(soffice.exe)를 찾을 수 없습니다" → LibreOffice를 기본 경로(`C:\Program Files\LibreOffice`)에 설치했는지 확인하세요.
 - "H2Orestart 확장이 설치되어 있지 않습니다" → `python setup\install_libreoffice_extension.py` 를 실행하세요.
 - 변환이 실패하면 문서가 손상되었거나 극히 드문 레이아웃 요소일 수 있습니다. LibreOffice에서 직접 그 파일을 열어보면 원인을 알 수 있습니다.
 - LibreOffice 렌더링은 한컴오피스 한글과 100% 동일하지는 않습니다 (레이아웃이 살짝 다를 수 있음). 완벽한 픽셀 단위 일치가 필요하면 한컴오피스에서 직접 "다른 이름으로 저장 > PDF"를 사용하세요.
+
+## 회귀 테스트
+
+`보고서 .hwp`처럼 확장자 앞에 공백이 있는 등 까다로운 파일명에서도 변환되는지 확인합니다
+(LibreOffice는 이런 파일을 메시지 없이 열지 못하기 때문에, 변환기는 항상 임시 이름으로 복사해서 변환합니다).
+
+```powershell
+$env:HWP_SAMPLE = "C:\path\to\아무거나.hwp"
+python -m unittest tests.test_filenames -v
+```
 
 ## 단일 exe로 빌드하기
 
@@ -88,8 +101,10 @@ hwptopdf/
   requirements.txt
   build_exe.bat                             # 단일 exe 빌드 스크립트
   setup/install_libreoffice_extension.py    # 최초 1회 H2Orestart 확장 설치 스크립트
+  tests/test_filenames.py                   # 까다로운 파일명 회귀 테스트
   hwp2pdf/
     converter.py                             # LibreOffice(soffice) 헤드리스 변환
+    log.py                                   # 로그 파일 설정
     privacy.py                               # EXIF 제거 / 메타데이터 제거 / 병합 / 암호화
     worker.py                                # 동시 변환을 위한 백그라운드 작업 큐
     gui.py                                   # PyQt6 GUI (드래그앤드롭, 옵션, 진행률)

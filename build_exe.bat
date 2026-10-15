@@ -1,7 +1,8 @@
 @echo off
-REM 단일 exe 빌드 스크립트. 빠른 시작을 위해 불필요한 무거운 패키지(torch/tensorflow 등)와
-REM 쓰지 않는 PyQt6 모듈을 제외합니다.
-REM 사용법: 이 파일이 있는 폴더(프로젝트 루트)에서 그냥 더블클릭하거나 실행하세요.
+REM Builds dist\HWPtoPDF.exe as a single file.
+REM Heavy unrelated packages (torch/tensorflow/...) and unused PyQt6 modules are
+REM excluded so the exe stays small and starts fast.
+REM Keep this file ASCII-only with CRLF line endings: cmd.exe misparses UTF-8 Korean text.
 
 cd /d "%~dp0"
 
@@ -27,5 +28,5 @@ pyinstaller --onefile --windowed --noupx --clean --name HWPtoPDF ^
   main.py
 
 echo.
-echo 빌드 완료: dist\HWPtoPDF.exe
+echo Build finished: dist\HWPtoPDF.exe
 pause
